@@ -341,9 +341,8 @@ ghci> :l src/Chapter2.hs
 subList :: Int -> Int -> [a] -> [a]
 subList _ _ [] = []
 subList start end xs
-  | start < 0 || end < 0 = []
-  | end < start = []
-  | otherwise = take (end-start+1) $ drop start xs
+  | start < 0 || end < 0 || end < start = []
+  | otherwise = take (end - start + 1) $ drop start xs
 
 {- |
 =⚔️= Task 4
@@ -632,12 +631,9 @@ Write a function that takes elements of a list only on even positions.
 [2,3,4]
 -}
 takeEven :: [a] -> [a]
-takeEven lst = go (0::Int) lst
-  where
-    go _ [] = []
-    go n (x:xs)
-      | n `mod` 2 == 0 = x : go (n+1) xs
-      | otherwise      = go (n+1) xs
+takeEven [] = []
+takeEven (x:_:xs) = x : takeEven xs
+takeEven xs = xs 
 
 {- |
 =🛡= Higher-order functions
@@ -744,7 +740,7 @@ value of the element itself
 🕯 HINT: Use combination of 'map' and 'replicate'
 -}
 smartReplicate :: [Int] -> [Int]
-smartReplicate l = concat $ map (\x -> replicate x x) l
+smartReplicate = (>>= \x -> replicate x x)
 
 {- |
 =⚔️= Task 9
@@ -758,7 +754,7 @@ the list with only those lists that contain a passed element.
 🕯 HINT: Use the 'elem' function to check whether an element belongs to a list
 -}
 contains :: Int -> [[Int]] -> [[Int]]
-contains n xs = filter (elem n) xs
+contains = filter . elem
 
 
 {- |
@@ -860,6 +856,7 @@ list.
 🕯 HINT: Use the 'cycle' function
 -}
 rotate :: Int -> [a] -> [a]
+rotate 0 xs = xs
 rotate n xs
   | n < 0 = []
   | otherwise = take size $ drop n $ cycle xs
@@ -881,8 +878,10 @@ and reverses it.
   cheating!
 -}
 rewind :: [a] -> [a]
-rewind [] = []
-rewind (x:xs) = rewind xs ++ [x]
+rewind = go []
+  where
+    go acc [] = acc
+    go acc (x:xs) = go (x:acc) xs
 
 
 {-
