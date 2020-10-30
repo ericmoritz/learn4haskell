@@ -1014,13 +1014,12 @@ instance Append Gold where
   append (Gold x) (Gold y) = Gold $ x + y
 
 instance Append [a] where
-  append x y = x ++ y
+  append = (++)
 
 instance (Append a) => Append (Maybe a) where
   append (Just x) (Just y) = Just $ append x y
-  append (Just x) Nothing = Just x
-  append Nothing (Just y)= Just y
-  append Nothing Nothing = Nothing
+  append x Nothing = x
+  append Nothing y = y
 
 {-
 =🛡= Standard Typeclasses and Deriving
@@ -1082,10 +1081,10 @@ implement the following functions:
 🕯 HINT: to implement this task, derive some standard typeclasses
 -}
 data DayOfWeek = Mon | Tue | Wed | Thu | Fri | Sat | Sun
-  deriving (Enum, Show)
+  deriving (Eq, Ord, Enum, Show)
 
 isWeekend :: DayOfWeek -> Bool
-isWeekend x = fromEnum x >= 5
+isWeekend x = x >= Fri
 
 nextDay :: DayOfWeek -> DayOfWeek
 nextDay x = toEnum $ (fromEnum x + 1) `mod` 7
