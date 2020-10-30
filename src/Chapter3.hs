@@ -343,6 +343,12 @@ Define the Book product data type. You can take inspiration from our description
 of a book, but you are not limited only by the book properties we described.
 Create your own book type of your dreams!
 -}
+data Book = Book
+  { bookName   :: String
+  , bookAuthor :: String
+  , bookCover  :: String
+  , bookPages  :: Int
+  } deriving (Show)
 
 {- |
 =⚔️= Task 2
@@ -372,8 +378,40 @@ after the fight. The battle has the following possible outcomes:
  ⊛ Neither the knight nor the monster wins. On such an occasion, the knight
    doesn't earn any money and keeps what they had before.
 
--}
+- Knight kills monster
+>>> fight Monster { monsterHealth = 10, monsterAttack = 2, monsterGold = 1 } Knight { knightHealth = 5, knightAttack = 15, knightGold = 1 }
+2
 
+- Monster kills Knight
+>>> fight Monster { monsterHealth = 10, monsterAttack = 6, monsterGold = 1 } Knight { knightHealth = 5, knightAttack = 5, knightGold = 1 }
+-1
+
+- Both survive
+>>> fight Monster { monsterHealth = 10, monsterAttack = 2, monsterGold = 1 } Knight { knightHealth = 5, knightAttack = 5, knightGold = 1 }
+1
+
+-}
+data Knight = Knight
+  { knightHealth :: Int
+  , knightAttack :: Int
+  , knightGold :: Int
+  } deriving (Show)
+
+data Monster = Monster
+  { monsterHealth :: Int
+  , monsterAttack :: Int
+  , monsterGold :: Int
+  } deriving (Show)
+
+fight :: Monster -> Knight -> Int
+fight monster knight
+  -- Knight kills monster
+  | monsterHealth monster - knightAttack knight <= 0 = knightGold knight + monsterGold monster
+  -- Monster kills Knight
+  | knightHealth knight - monsterAttack monster <= 0 = -1
+  -- Both survive
+  | otherwise = knightGold knight
+ 
 {- |
 =🛡= Sum types
 
@@ -479,6 +517,43 @@ After defining the city, implement the following functions:
    complicated task, walls can be built only if the city has a castle
    and at least 10 living __people__ inside in all houses of the city totally.
 -}
+data Castle = Castle { castleName :: String } deriving (Show)
+
+data KnowledgeCenter
+  = Church
+  | Library
+  deriving (Show)
+ 
+data House
+  = OnePersonHouse
+  | TwoPersonHouse
+  | ThreePersonHouse
+  | FourPersonHouse
+  deriving (Enum, Show)
+
+houseOccupants :: House -> Int
+houseOccupants = (+1) . fromEnum
+
+data City
+  = CityWithWalls Castle KnowledgeCenter [House]
+  | CityWithoutWalls (Maybe Castle) KnowledgeCenter [House]
+  deriving (Show)
+
+buildCastle :: Castle -> City -> City
+buildCastle castle (CityWithWalls _ kc h)
+  = CityWithWalls castle kc h
+buildCastle castle (CityWithoutWalls _ kc h)
+  = CityWithoutWalls (Just castle) kc h
+
+buildHouse :: House -> City -> City
+buildHouse house (CityWithWalls c kc hs) = CityWithWalls c kc (house:hs)
+buildHouse house (CityWithoutWalls c kc hs) = CityWithoutWalls c kc (house:hs)
+
+buildWalls :: City -> City
+buildWalls city@(CityWithoutWalls (Just castle) kc houses)
+  | (sum $ map houseOccupants houses) >= 10 = CityWithWalls castle kc houses
+  | otherwise = city
+buildWalls c = c
 
 {-
 =🛡= Newtypes
@@ -560,22 +635,32 @@ introducing extra newtypes.
 🕯 HINT: if you complete this task properly, you don't need to change the
     implementation of the "hitPlayer" function at all!
 -}
+newtype Health = Health Int
+newtype Armor = Armor Int
+newtype Attack = Attack Int
+newtype Dexterity = Dexterity Int
+newtype Strength = Strength Int
+newtype Damage = Damage Int
+newtype Defense = Defense Int
+
 data Player = Player
-    { playerHealth    :: Int
-    , playerArmor     :: Int
-    , playerAttack    :: Int
-    , playerDexterity :: Int
-    , playerStrength  :: Int
+    { playerHealth    :: Health
+    , playerArmor     :: Armor
+    , playerAttack    :: Attack
+    , playerDexterity :: Dexterity
+    , playerStrength  :: Strength
     }
 
-calculatePlayerDamage :: Int -> Int -> Int
-calculatePlayerDamage attack strength = attack + strength
+calculatePlayerDamage :: Attack -> Strength -> Damage
+calculatePlayerDamage (Attack attack) (Strength strength)
+  = Damage $ attack + strength
 
-calculatePlayerDefense :: Int -> Int -> Int
-calculatePlayerDefense armor dexterity = armor * dexterity
+calculatePlayerDefense :: Armor -> Dexterity -> Defense
+calculatePlayerDefense (Armor armor) (Dexterity dexterity)
+  = Defense $ armor * dexterity
 
-calculatePlayerHit :: Int -> Int -> Int -> Int
-calculatePlayerHit damage defense health = health + defense - damage
+calculatePlayerHit :: Damage -> Defense -> Health -> Health
+calculatePlayerHit (Damage damage) (Defense defense) (Health health) = Health $ health + defense - damage
 
 -- The second player hits first player and the new first player is returned
 hitPlayer :: Player -> Player -> Player
@@ -753,6 +838,19 @@ parametrise data types in places where values can be of any general type.
   maybe-treasure ;)
 -}
 
+data Dragon a = Dragon
+  { dragonMagic :: a }
+ 
+data TreasureChest x = TreasureChest
+  { treasureChestGold :: Int
+  , treasureChestLoot :: x
+  }
+
+data Lair a x = Lair
+  { lairDragon :: Dragon a
+  , lairChest :: Maybe (TreasureChest x)
+  }
+ 
 {-
 =🛡= Typeclasses
 
@@ -910,6 +1008,19 @@ Implement instances of "Append" for the following types:
 class Append a where
     append :: a -> a -> a
 
+newtype Gold = Gold Int
+
+instance Append Gold where
+  append (Gold x) (Gold y) = Gold $ x + y
+
+instance Append [a] where
+  append x y = x ++ y
+
+instance (Append a) => Append (Maybe a) where
+  append (Just x) (Just y) = Just $ append x y
+  append (Just x) Nothing = Just x
+  append Nothing (Just y)= Just y
+  append Nothing Nothing = Nothing
 
 {-
 =🛡= Standard Typeclasses and Deriving
@@ -970,6 +1081,21 @@ implement the following functions:
 
 🕯 HINT: to implement this task, derive some standard typeclasses
 -}
+data DayOfWeek = Mon | Tue | Wed | Thu | Fri | Sat | Sun
+  deriving (Enum, Show)
+
+isWeekend :: DayOfWeek -> Bool
+isWeekend x = fromEnum x >= 5
+
+nextDay :: DayOfWeek -> DayOfWeek
+nextDay x = toEnum $ (fromEnum x + 1) `mod` 7
+
+-- NOTE: I thought about using Bounded to calculate that "magic number" 7, but I
+-- doubt the number of days are changing anytime soon and would be cause a Y2K
+-- scale problem if that happened :)
+
+daysToParty :: DayOfWeek -> Int
+daysToParty x = (fromEnum Fri) - (fromEnum x) `mod` 7
 
 {-
 =💣= Task 9*
