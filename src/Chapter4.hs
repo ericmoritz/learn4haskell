@@ -318,7 +318,7 @@ data List a
 
 instance Functor List where
   fmap _ Empty = Empty
-  fmap f (Cons a xs) = (Cons (f a)) (fmap f xs)
+  fmap f (Cons a xs) = Cons (f a) (fmap f xs)
  
 {- |
 =🛡= Applicative
@@ -489,8 +489,7 @@ instance Applicative (Secret e) where
 
     (<*>) :: Secret e (a -> b) -> Secret e a -> Secret e b
     (<*>) (Trap e) _ = Trap e
-    (<*>) _ (Trap e) = Trap e
-    (<*>) (Reward f) (Reward x) = Reward $ f x
+    (<*>) (Reward f) x = f `fmap` x
 
 {- |
 =⚔️= Task 5
@@ -512,6 +511,7 @@ Cons 2 (Cons 3 (Cons 4 (Cons 3 (Cons 4 (Cons 5 Empty)))))
 
 listAppend :: List a -> List a -> List a
 listAppend Empty ys = ys
+listAppend xs Empty = xs
 listAppend (Cons x xs') ys = Cons x (listAppend xs' ys)
 
 listConcat :: List (List a) -> List a
@@ -527,7 +527,6 @@ instance Applicative List where
   (<*>) _ Empty = Empty
   (<*>) (Cons f fs) xs
     = f `fmap` xs `listAppend` (fs <*> xs)
-    where
 
 
 {- |
@@ -652,7 +651,6 @@ Implement the 'Monad' instance for our lists.
   maybe a few) to flatten lists of lists to a single list.
 -}
 instance Monad List where
-  (>>=) Empty _ = Empty
   (>>=) xs f = listConcat $ fmap f xs
 
 {- |
